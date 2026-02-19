@@ -7,6 +7,9 @@ from .models import StockMovement
 from .serializers import StockMovementSerializer
 from products.models import Product
 
+from rest_framework import generics
+from products.models import Product
+
 # Create your views here.
 
 class StockMovementCreateView(generics.CreateAPIView):
@@ -35,3 +38,19 @@ class StockMovementCreateView(generics.CreateAPIView):
         product.save()
 
         serializer.save(performed_by=self.request.user)
+
+
+class ProductStockHistoryView(generics.ListAPIView):
+    serializer_class = StockMovementSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        product_id = self.kwargs['product_id']
+
+        product = Product.objects.get(id=product_id)
+
+        # Ownership check
+        if product.owner != self.request.user:
+            raise ValidationError("You cannot view stock history for a product you do not own.")
+
+        return StockMovement.objects.filter(product=product).order_by('-timestamp')     
