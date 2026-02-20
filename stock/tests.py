@@ -40,3 +40,21 @@ class StockLogicTest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Product.objects.get(id=self.product.id).quantity_in_stock, 5)
+
+
+
+    def test_stock_increases_correctly(self):
+        url = reverse('stock-movement-create')
+
+        data = {
+            "product": self.product.id,
+            "movement_type": "IN",
+            "quantity": 5
+        }
+
+        response = self.client.post(url, data)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.quantity_in_stock, 10)
