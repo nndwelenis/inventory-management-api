@@ -217,13 +217,3 @@ Backend implementation complete.
 Fully deployed and production-ready.
 
 ---
-
-Now commit this:
-
-git add README.md
-git commit -m "Finalize professional project README with live deployment details"
-git push
-
----
-
-After that, tell me and we move to full production testing flow.
