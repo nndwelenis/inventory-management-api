@@ -1,270 +1,229 @@
+---
+
 # Inventory Management API
 
-A production-ready backend REST API for managing inventory, suppliers, and stock movements.
+A production-ready RESTful backend built with Django and Django REST Framework for managing products, suppliers, and stock movements for multiple shop owners.
 
-Built using:
+Live API URL:
 
+[https://inventory-management-api-e9qv.onrender.com/](https://inventory-management-api-e9qv.onrender.com/)
+
+---
+
+## Overview
+
+This API allows authenticated users to:
+
+* Register and log in using JWT authentication
+* Manage their own products
+* Track stock movements (IN and OUT)
+* Prevent negative stock
+* Filter low stock products
+* View stock history
+
+Each user can only access their own inventory data.
+
+---
+
+## Tech Stack
+
+* Python 3
 * Django
 * Django REST Framework
 * PostgreSQL
-
-This API allows authenticated users to manage inventory items, track stock changes, and maintain supplier relationships in a secure and scalable way.
-
----
-
-# 📌 Overview
-
-The Inventory Management API is designed to simulate a real-world inventory system used in retail or warehouse environments.
-
-The system supports:
-
-* Supplier management
-* Product management
-* Stock tracking (stock-in and stock-out)
-* Ownership-based access control
-* Audit logging of inventory changes
-* Secure authentication
-
-The architecture follows clean backend layering and relational database best practices.
+* JWT Authentication (SimpleJWT)
+* Gunicorn
+* Render (Deployment)
 
 ---
 
-# 🏗 Architecture
+## Authentication
 
-The project is modular and divided into domain-specific Django apps:
+This API uses JWT (JSON Web Tokens).
 
-```
-inventory_api/
-│
-├── users/
-├── suppliers/
-├── products/
-├── stock/
-```
+### Register User
 
-Each app handles a specific responsibility:
+POST
+/api/register/
 
-* users → authentication logic
-* suppliers → supplier data management
-* products → inventory items
-* stock → stock movement history and auditing
+Example body:
 
-This modular structure ensures maintainability and scalability.
-
----
-
-# 🗄 Database Design
-
-The system uses PostgreSQL as its database backend.
-
-## Core Models
-
-### Supplier
-
-Represents companies or individuals that provide inventory items.
-
-Fields:
-
-* id
-* name
-* contact_email
-* phone_number
-* created_at
-
----
-
-### Product
-
-Represents inventory items stored in the system.
-
-Fields:
-
-* id
-* name
-* description
-* category
-* quantity_in_stock
-* price
-* owner (ForeignKey to User)
-* supplier (ForeignKey to Supplier)
-* created_at
-* updated_at
-
-Design considerations:
-
-* quantity_in_stock is restricted to non-negative values
-* price uses DecimalField for financial precision
-* ownership ensures users can only manage their own products
-* supplier relationship is optional
-
----
-
-### StockMovement
-
-Tracks inventory changes for audit purposes.
-
-Fields:
-
-* id
-* product (ForeignKey to Product)
-* movement_type (IN / OUT)
-* quantity
-* performed_by (ForeignKey to User)
-* timestamp
-
-Design considerations:
-
-* movement_type is restricted to controlled values
-* stock changes are traceable by user and time
-* historical tracking supports reporting and auditing
-
----
-
-# 🔐 Authentication & Security
-
-Authentication is required for all API endpoints.
-
-The API uses:
-
-* SessionAuthentication
-* TokenAuthentication
-
-Default permission:
-
-```
-IsAuthenticated
-```
-
-This ensures that no inventory operations can be performed without valid authentication credentials.
-
-Ownership enforcement ensures users can only modify products they own.
-
----
-
-# 🌐 API Endpoints (Implemented So Far)
-
-## Suppliers
-
-Base route:
-
-```
-/api/suppliers/
-```
-
-Supported operations:
-
-* GET → List suppliers
-* POST → Create supplier
-* GET /{id}/ → Retrieve supplier
-* PUT /{id}/ → Update supplier
-* PATCH /{id}/ → Partial update
-* DELETE /{id}/ → Delete supplier
-
-All endpoints require authentication.
-
----
-
-# 📦 Installation & Setup
-
-## 1. Clone the Repository
-
-```
-git clone https://github.com/your-username/inventory-management-api.git
-cd inventory-management-api
-```
-
-## 2. Create Virtual Environment
-
-```
-python -m venv env
-.\env\Scripts\Activate
-```
-
-## 3. Install Dependencies
-
-```
-pip install django
-pip install djangorestframework
-pip install psycopg[binary]
-```
-
-## 4. Configure PostgreSQL
-
-Create a PostgreSQL database:
-
-```
-inventory_db
-```
-
-Update `settings.py`:
-
-```
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'inventory_db',
-        'USER': 'postgres',
-        'PASSWORD': 'your_password',
-        'HOST': '127.0.0.1',
-        'PORT': '5432',
-    }
+{
+"username": "jay",
+"email": "[jay@email.com](mailto:jay@email.com)",
+"password": "strongpassword"
 }
-```
 
-## 5. Apply Migrations
+---
 
-```
+### Login
+
+POST
+/api/login/
+
+Example body:
+
+{
+"username": "jay",
+"password": "strongpassword"
+}
+
+Response:
+
+{
+"access": "your_access_token",
+"refresh": "your_refresh_token"
+}
+
+Use the access token in all protected requests:
+
+Authorization: Bearer your_access_token
+
+---
+
+## Core Endpoints
+
+### Products
+
+GET /api/products/
+POST /api/products/
+
+Supports:
+
+* Low stock filter
+  /api/products/?low_stock=true
+
+* Ordering
+  /api/products/?ordering=name
+
+---
+
+### Suppliers
+
+GET /api/suppliers/
+POST /api/suppliers/
+
+---
+
+### Stock Movements
+
+POST /api/stock/
+
+Movement types:
+
+* IN (increase stock)
+* OUT (decrease stock)
+
+Business rules enforced:
+
+* Stock cannot go negative
+* Stock updates and movement logging are atomic
+* Users cannot modify another user’s products
+
+---
+
+## Business Logic
+
+### Ownership Security
+
+All products and suppliers are tied to a specific user.
+
+Users cannot:
+
+* View other users’ products
+* Modify other users’ stock
+* Access foreign inventory data
+
+---
+
+### Stock Validation
+
+When creating an OUT movement:
+
+* The system checks available quantity
+* If insufficient, request is rejected
+* Transaction rollback ensures consistency
+
+---
+
+## Testing
+
+Unit tests implemented for:
+
+* Product ownership isolation
+* Stock increase logic
+* Prevention of negative stock
+* Supplier creation
+
+All tests pass successfully.
+
+---
+
+## Deployment
+
+The project is deployed on Render using:
+
+* Gunicorn production server
+* PostgreSQL managed database
+* Environment variable configuration
+* Automatic migrations on startup
+
+Production settings include:
+
+* DEBUG disabled
+* Environment-based configuration
+* Secure SECRET_KEY handling
+* Proper ALLOWED_HOSTS configuration
+
+---
+
+## Environment Variables
+
+The following variables are required in production:
+
+SECRET_KEY
+DEBUG
+DB_NAME
+DB_USER
+DB_PASSWORD
+DB_HOST
+DB_PORT
+ALLOWED_HOSTS
+
+---
+
+## How to Run Locally
+
+1. Clone repository
+2. Create virtual environment
+3. Install dependencies
+
+pip install -r requirements.txt
+
+4. Configure .env file
+5. Run migrations
+
 python manage.py migrate
-```
 
-## 6. Run Development Server
+6. Start server
 
-```
 python manage.py runserver
-```
-
-Access:
-
-```
-http://127.0.0.1:8000/api/suppliers/
-```
 
 ---
 
-# 🧠 Design Principles Applied
+## Project Status
 
-* Separation of concerns (modular apps)
-* Relational integrity through ForeignKey constraints
-* Defensive modeling using PositiveIntegerField
-* Financial precision using DecimalField
-* Controlled domain values using choices
-* Audit logging for traceability
-* Security by default (global IsAuthenticated)
-* Pagination enabled globally
+Backend implementation complete.
+Fully deployed and production-ready.
 
 ---
 
-# 📈 Planned Enhancements
+Now commit this:
 
-* Product API endpoints
-* Stock movement increase/decrease logic
-* Ownership validation enforcement
-* Filtering and sorting for products
-* Low-stock alerts
-* Authentication endpoints (register/login)
-* Deployment configuration
-* API documentation
+git add README.md
+git commit -m "Finalize professional project README with live deployment details"
+git push
 
 ---
 
-# 🛠 Technologies Used
-
-* Python
-* Django
-* Django REST Framework
-* PostgreSQL
-* Git
-
----
-
-
+After that, tell me and we move to full production testing flow.
