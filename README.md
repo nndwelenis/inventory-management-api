@@ -210,10 +210,3 @@ python manage.py migrate
 python manage.py runserver
 
 ---
-
-## Project Status
-
-Backend implementation complete.
-Fully deployed and production-ready.
-
----
